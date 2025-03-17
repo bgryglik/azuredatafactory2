@@ -1,0 +1,37 @@
+{
+	"name": "DelimitedText2",
+	"properties": {
+		"linkedServiceName": {
+			"referenceName": "AzureBlobStorage1",
+			"type": "LinkedServiceReference"
+		},
+		"annotations": [],
+		"type": "DelimitedText",
+		"typeProperties": {
+			"location": {
+				"type": "AzureBlobStorageLocation",
+				"fileName": "PdM_errors.csv",
+				"folderPath": "azuredatafactoryfolderbg1/data",
+				"container": "kontenerbg1"
+			},
+			"columnDelimiter": ",",
+			"escapeChar": "\\",
+			"firstRowAsHeader": true,
+			"quoteChar": "\""
+		},
+		"schema": [
+			{
+				"name": "datetime",
+				"type": "String"
+			},
+			{
+				"name": "machineID",
+				"type": "String"
+			},
+			{
+				"name": "errorID",
+				"type": "String"
+			}
+		]
+	}
+}

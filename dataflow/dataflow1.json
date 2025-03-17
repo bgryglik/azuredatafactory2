@@ -1,0 +1,55 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"name": "Telemetry1",
+					"description": "plik danych telemetrycznych"
+				},
+				{
+					"dataset": {
+						"referenceName": "DelimitedText2",
+						"type": "DatasetReference"
+					},
+					"name": "Errors1"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "ErrorToColumns"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          datetime as timestamp,",
+				"          machineID as integer,",
+				"          volt as string,",
+				"          rotate as string,",
+				"          pressure as string,",
+				"          vibration as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Telemetry1",
+				"source(output(",
+				"          datetime as timestamp,",
+				"          machineID as short,",
+				"          errorID as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Errors1",
+				"Errors1 pivot(groupBy(errorID),",
+				"     columnNaming: '$N$V',",
+				"     lateral: true) ~> ErrorToColumns"
+			]
+		}
+	}
+}
