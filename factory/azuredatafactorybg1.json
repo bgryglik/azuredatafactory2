@@ -1,0 +1,9 @@
+{
+	"name": "azuredatafactorybg1",
+	"location": "swedencentral",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "1b0fafd5-3673-47ce-8814-f160bb7703a4",
+		"tenantId": "63441aef-da0e-4397-bb7e-f9d4705e963b"
+	}
+}
