@@ -33,16 +33,19 @@
 				},
 				{
 					"name": "window1"
+				},
+				{
+					"name": "window24"
 				}
 			],
 			"scriptLines": [
 				"source(output(",
 				"          datetime as timestamp,",
 				"          machineID as integer,",
-				"          volt as string,",
-				"          rotate as string,",
-				"          pressure as string,",
-				"          vibration as string",
+				"          volt as float,",
+				"          rotate as float,",
+				"          pressure as float,",
+				"          vibration as float",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
@@ -63,7 +66,7 @@
 				"     columnNaming: '$N$V',",
 				"     lateral: false) ~> ErrorToColumns",
 				"Telemetry1, ErrorToColumns join(Telemetry1@datetime == ErrorToColumns@datetime",
-				"     && Telemetry1@machineID == ErrorToColumns@datetime,",
+				"     && Telemetry1@machineID == ErrorToColumns@machineID,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
@@ -79,7 +82,16 @@
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
-				"select1 window() ~> window1"
+				"select1 window(asc(datetime, true),",
+				"     rangeSpecified: true,",
+				"     startRowOffset: -3L,",
+				"     endRowOffset: 0L,",
+				"     meanrotate = mean(rotate),",
+				"          meanpressure = mean(pressure),",
+				"          meanvibration = mean(vibration),",
+				"          meanvolt = mean(volt),",
+				"          stddevvolt = stddev(volt)) ~> window1",
+				"window1 window() ~> window24"
 			]
 		}
 	}
