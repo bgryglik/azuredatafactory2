@@ -24,6 +24,15 @@
 			"transformations": [
 				{
 					"name": "ErrorToColumns"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "window1"
 				}
 			],
 			"scriptLines": [
@@ -40,15 +49,37 @@
 				"     ignoreNoFilesFound: false) ~> Telemetry1",
 				"source(output(",
 				"          datetime as timestamp,",
-				"          machineID as short,",
+				"          machineID as integer,",
 				"          errorID as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> Errors1",
-				"Errors1 pivot(groupBy(errorID),",
+				"Errors1 pivot(groupBy(datetime,",
+				"          machineID),",
+				"     pivotBy(errorID),",
+				"     column1 = count(errorID),",
+				"          {} = ERROR_FUNCTION(''),",
 				"     columnNaming: '$N$V',",
-				"     lateral: true) ~> ErrorToColumns"
+				"     lateral: false) ~> ErrorToColumns",
+				"Telemetry1, ErrorToColumns join(Telemetry1@datetime == ErrorToColumns@datetime",
+				"     && Telemetry1@machineID == ErrorToColumns@datetime,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          datetime = Telemetry1@datetime,",
+				"          machineID = Telemetry1@machineID,",
+				"          volt,",
+				"          rotate,",
+				"          pressure,",
+				"          vibration,",
+				"          datetime = ErrorToColumns@datetime",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> select1",
+				"select1 window() ~> window1"
 			]
 		}
 	}
