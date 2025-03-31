@@ -18,6 +18,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "Errors1"
+				},
+				{
+					"dataset": {
+						"referenceName": "DelimitedText3",
+						"type": "DatasetReference"
+					},
+					"name": "Failures1"
 				}
 			],
 			"sinks": [],
@@ -36,6 +43,9 @@
 				},
 				{
 					"name": "window24"
+				},
+				{
+					"name": "FailuresToColumns"
 				}
 			],
 			"scriptLines": [
@@ -58,11 +68,18 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> Errors1",
+				"source(output(",
+				"          datetime as timestamp,",
+				"          machineID as string,",
+				"          failure as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> Failures1",
 				"Errors1 pivot(groupBy(datetime,",
 				"          machineID),",
 				"     pivotBy(errorID),",
 				"     column1 = count(errorID),",
-				"          {} = ERROR_FUNCTION(''),",
 				"     columnNaming: '$N$V',",
 				"     lateral: false) ~> ErrorToColumns",
 				"Telemetry1, ErrorToColumns join(Telemetry1@datetime == ErrorToColumns@datetime",
@@ -83,15 +100,29 @@
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select1",
 				"select1 window(asc(datetime, true),",
-				"     rangeSpecified: true,",
 				"     startRowOffset: -3L,",
 				"     endRowOffset: 0L,",
 				"     meanrotate = mean(rotate),",
 				"          meanpressure = mean(pressure),",
 				"          meanvibration = mean(vibration),",
 				"          meanvolt = mean(volt),",
-				"          stddevvolt = stddev(volt)) ~> window1",
-				"window1 window() ~> window24"
+				"          stddevvolt = stddev(volt),",
+				"     rangeSpecified: true) ~> window1",
+				"window1 window(asc(datetime, true),",
+				"     rangeSpecified: true,",
+				"     startRowOffset: -24L,",
+				"     endRowOffset: 0L,",
+				"     meanrotate = mean(rotate),",
+				"          meanpressure = mean(pressure),",
+				"          meanvibration = mean(vibration),",
+				"          meanvolt = mean(volt),",
+				"          stddevvolot = stddev(volt)) ~> window24",
+				"Failures1 pivot(groupBy(machineID,",
+				"          datetime),",
+				"     pivotBy(failure),",
+				"     count = count(failure),",
+				"     columnNaming: '$N$V',",
+				"     lateral: true) ~> FailuresToColumns"
 			]
 		}
 	}
