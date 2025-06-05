@@ -1,0 +1,128 @@
+{
+	"name": "bledy",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DelimitedText2",
+						"type": "DatasetReference"
+					},
+					"name": "bledy"
+				},
+				{
+					"dataset": {
+						"referenceName": "DelimitedText1",
+						"type": "DatasetReference"
+					},
+					"name": "telemery"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable1",
+						"type": "DatasetReference"
+					},
+					"name": "bledysql"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable2",
+						"type": "DatasetReference"
+					},
+					"name": "bezznaczenia"
+				},
+				{
+					"dataset": {
+						"referenceName": "AzureSqlTable3",
+						"type": "DatasetReference"
+					},
+					"name": "bledysql2"
+				}
+			],
+			"transformations": [
+				{
+					"name": "kolumnydatetimemachineid"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "kolumnydatetimemachineid2"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          datetime as timestamp,",
+				"          machineID as short,",
+				"          failure as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> bledy",
+				"source(output(",
+				"          datetime as timestamp,",
+				"          machineID as boolean,",
+				"          volt as double,",
+				"          rotate as double,",
+				"          pressure as double,",
+				"          vibration as double",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> telemery",
+				"telemery select(mapColumn(",
+				"          datetime,",
+				"          machineID",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> kolumnydatetimemachineid",
+				"kolumnydatetimemachineid, bledy join(kolumnydatetimemachineid@datetime == bledy@datetime",
+				"     && kolumnydatetimemachineid@machineID == bledy@machineID,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 select(mapColumn(",
+				"          datetime = kolumnydatetimemachineid@datetime,",
+				"          machineID = kolumnydatetimemachineid@machineID,",
+				"          failure",
+				"     ),",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true) ~> kolumnydatetimemachineid2",
+				"bledy sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> bledysql",
+				"kolumnydatetimemachineid sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> bezznaczenia",
+				"kolumnydatetimemachineid2 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> bledysql2"
+			]
+		}
+	}
+}
