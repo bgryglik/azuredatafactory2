@@ -9,30 +9,30 @@
 						"referenceName": "DelimitedText1",
 						"type": "DatasetReference"
 					},
-					"name": "telemere"
+					"name": "telemetricimport"
 				},
 				{
 					"dataset": {
-						"referenceName": "lastmistake",
+						"referenceName": "DelimitedText3",
 						"type": "DatasetReference"
 					},
-					"name": "source2blad"
+					"name": "errors"
 				},
 				{
 					"dataset": {
 						"referenceName": "DelimitedText2",
 						"type": "DatasetReference"
 					},
-					"name": "poraszki"
+					"name": "failures"
 				}
 			],
 			"sinks": [],
 			"transformations": [
 				{
-					"name": "pivoerrors"
+					"name": "pivottableerrors"
 				},
 				{
-					"name": "joint"
+					"name": "jointables"
 				},
 				{
 					"name": "select"
@@ -44,7 +44,7 @@
 					"name": "window24"
 				},
 				{
-					"name": "pivoporaszki"
+					"name": "pivottablefailures"
 				}
 			],
 			"scriptLines": [
@@ -52,24 +52,16 @@
 				"     parameter1 as string",
 				"}",
 				"source(output(",
-				"          datetime as timestamp,",
-				"          machineID as integer,",
-				"          volt as double,",
-				"          rotate as double,",
-				"          pressure as double,",
-				"          vibration as double",
+				"          datetime as string,",
+				"          machineID as string,",
+				"          volt as string,",
+				"          rotate as string,",
+				"          pressure as string,",
+				"          vibration as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> telemere",
-				"source(output(",
-				"          datetime as timestamp,",
-				"          machineID as short,",
-				"          errorID as string",
-				"     ),",
-				"     allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source2blad",
+				"     ignoreNoFilesFound: false) ~> telemetricimport",
 				"source(output(",
 				"          datetime as string,",
 				"          machineID as string,",
@@ -77,52 +69,60 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> poraszki",
-				"source2blad pivot(groupBy(datetime,",
+				"     ignoreNoFilesFound: false) ~> errors",
+				"source(output(",
+				"          datetime as string,",
+				"          machineID as string,",
+				"          failure as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> failures",
+				"errors pivot(groupBy(datetime,",
 				"          machineID),",
 				"     pivotBy(errorID),",
 				"     zygmunt = count(errorID),",
 				"     columnNaming: '$N$V',",
-				"     lateral: false) ~> pivoerrors",
-				"telemere, pivoerrors join(telemere@datetime == pivoerrors@datetime",
-				"     && telemere@machineID == pivoerrors@machineID,",
+				"     lateral: false) ~> pivottableerrors",
+				"telemetricimport, pivottableerrors join(telemetricimport@datetime == pivottableerrors@datetime",
+				"     && telemetricimport@machineID == pivottableerrors@machineID,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> joint",
-				"joint select(mapColumn(",
-				"          datetime = telemere@datetime,",
-				"          machineID = telemere@machineID,",
+				"     broadcast: 'auto')~> jointables",
+				"jointables select(mapColumn(",
+				"          datetime = telemetricimport@datetime,",
+				"          machineID = telemetricimport@machineID,",
 				"          volt,",
 				"          rotate,",
 				"          pressure,",
 				"          vibration,",
-				"          datetime = pivoerrors@datetime,",
-				"          machineID = pivoerrors@machineID",
+				"          datetime = pivottableerrors@datetime,",
+				"          machineID = pivottableerrors@machineID",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true) ~> select",
 				"select window(asc(datetime, true),",
-				"     rangeSpecified: true,",
 				"     startRowOffset: -3L,",
 				"     endRowOffset: 0L,",
 				"     mean_rotate_3h = mean(rotate),",
 				"          mean_pressure_3h = mean(pressure),",
 				"          mean_vibration_3h = mean(vibration),",
 				"          mean_volt_3h = mean(volt),",
-				"          stddev_volt_3h = stddev(volt)) ~> window3",
+				"          stddev_volt_3h = stddev(volt),",
+				"     rangeSpecified: true) ~> window3",
 				"window3 window(asc(datetime, true),",
-				"     rangeSpecified: true,",
 				"     startRowOffset: -24L,",
 				"     endRowOffset: 0L,",
 				"     mean_rotate_24h = mean(rotate),",
-				"          mean_volt_24h = mean(volt)) ~> window24",
-				"poraszki pivot(groupBy(datetime,",
+				"          mean_volt_24h = mean(volt),",
+				"     rangeSpecified: true) ~> window24",
+				"failures pivot(groupBy(datetime,",
 				"          machineID),",
 				"     pivotBy(failure),",
 				"     kacper = count(failure),",
 				"     columnNaming: '$N$V',",
-				"     lateral: false) ~> pivoporaszki"
+				"     lateral: false) ~> pivottablefailures"
 			]
 		}
 	}

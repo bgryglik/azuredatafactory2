@@ -1,5 +1,5 @@
 {
-	"name": "bledy",
+	"name": "errors",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {
@@ -9,14 +9,14 @@
 						"referenceName": "DelimitedText2",
 						"type": "DatasetReference"
 					},
-					"name": "bledy"
+					"name": "errorsimport"
 				},
 				{
 					"dataset": {
 						"referenceName": "DelimitedText1",
 						"type": "DatasetReference"
 					},
-					"name": "telemery"
+					"name": "telemetryimport"
 				}
 			],
 			"sinks": [
@@ -25,32 +25,24 @@
 						"referenceName": "AzureSqlTable1",
 						"type": "DatasetReference"
 					},
-					"name": "bledysql"
+					"name": "errorsexporttosqlserver"
 				},
 				{
-					"dataset": {
-						"referenceName": "AzureSqlTable2",
-						"type": "DatasetReference"
-					},
-					"name": "bezznaczenia"
+					"name": "thirdexport"
 				},
 				{
-					"dataset": {
-						"referenceName": "AzureSqlTable3",
-						"type": "DatasetReference"
-					},
-					"name": "bledysql2"
+					"name": "errorsexporttosqlserver2"
 				}
 			],
 			"transformations": [
 				{
-					"name": "kolumnydatetimemachineid"
+					"name": "columstransform"
 				},
 				{
-					"name": "join1"
+					"name": "jointables"
 				},
 				{
-					"name": "kolumnydatetimemachineid2"
+					"name": "columnstransform2"
 				}
 			],
 			"scriptLines": [
@@ -61,10 +53,10 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> bledy",
+				"     ignoreNoFilesFound: false) ~> errorsimport",
 				"source(output(",
 				"          datetime as timestamp,",
-				"          machineID as boolean,",
+				"          machineID as string,",
 				"          volt as double,",
 				"          rotate as double,",
 				"          pressure as double,",
@@ -72,27 +64,27 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> telemery",
-				"telemery select(mapColumn(",
+				"     ignoreNoFilesFound: false) ~> telemetryimport",
+				"telemetryimport select(mapColumn(",
 				"          datetime,",
 				"          machineID",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> kolumnydatetimemachineid",
-				"kolumnydatetimemachineid, bledy join(kolumnydatetimemachineid@datetime == bledy@datetime",
-				"     && kolumnydatetimemachineid@machineID == bledy@machineID,",
+				"     skipDuplicateMapOutputs: true) ~> columstransform",
+				"columstransform, errorsimport join(columstransform@datetime == errorsimport@datetime",
+				"     && columstransform@machineID == errorsimport@machineID,",
 				"     joinType:'left',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> join1",
-				"join1 select(mapColumn(",
-				"          datetime = kolumnydatetimemachineid@datetime,",
-				"          machineID = kolumnydatetimemachineid@machineID,",
+				"     broadcast: 'auto')~> jointables",
+				"jointables select(mapColumn(",
+				"          datetime = columstransform@datetime,",
+				"          machineID = columstransform@machineID,",
 				"          failure",
 				"     ),",
 				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true) ~> kolumnydatetimemachineid2",
-				"bledy sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: true) ~> columnstransform2",
+				"errorsimport sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",
 				"     insertable:true,",
@@ -101,27 +93,17 @@
 				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> bledysql",
-				"kolumnydatetimemachineid sink(allowSchemaDrift: true,",
+				"     errorHandlingOption: 'stopOnFirstError') ~> errorsexporttosqlserver",
+				"columstransform sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> bezznaczenia",
-				"kolumnydatetimemachineid2 sink(allowSchemaDrift: true,",
+				"     format: 'table') ~> thirdexport",
+				"columnstransform2 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
 				"     skipDuplicateMapInputs: true,",
 				"     skipDuplicateMapOutputs: true,",
-				"     errorHandlingOption: 'stopOnFirstError') ~> bledysql2"
+				"     format: 'table') ~> errorsexporttosqlserver2"
 			]
 		}
 	}
